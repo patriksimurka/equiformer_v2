@@ -1,0 +1,5 @@
+models/oc20*
+nbody/dataset/*.npy
+*__pycache__
+datasets/oc20
+ocp
