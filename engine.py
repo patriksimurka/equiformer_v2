@@ -29,7 +29,6 @@ class AverageMeter:
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     norm_factor: list, 
-                    target: int,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, 
                     model_ema: Optional[ModelEma] = None,  
@@ -55,7 +54,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     #    atomref = torch.zeros(100, 1)
     #atomref = atomref.to(device)
     
-    for step, data in enumerate(data_loader):
+    for step, (data, target) in enumerate(data_loader):
         data = data.to(device)
         #data.edge_d_index = radius_graph(data.pos, r=10.0, batch=data.batch, loop=True)
         #data.edge_d_attr = data.edge_attr
