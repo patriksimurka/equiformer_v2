@@ -352,50 +352,35 @@ class EquiformerV2_nbody(BaseModel):
 
     @conditional_grad(torch.enable_grad())
     def forward(self, data):
-        self.batch_size = len(data.natoms)
-        self.dtype = data.pos.dtype
-        self.device = data.pos.device
-
-        atomic_numbers = data.atomic_numbers.long()
-        num_atoms = len(atomic_numbers)
-        pos = data.pos
-
-        (
-            edge_index,
-            edge_distance,
-            edge_distance_vec,
-            cell_offsets,
-            _,  # cell offset distances
-            neighbors,
-        ) = self.generate_graph(data)
-
+        loc_frame_0, vel_frame_0, edge_attr, charges = data
+        
+        # Extract relevant information from the input data
+        num_atoms = loc_frame_0.size(0)
+        pos = loc_frame_0
+        vel = vel_frame_0
+        atomic_numbers = charges
+        
+        # Generate the graph structure and edge-related information
+        edge_index, edge_distance, edge_distance_vec, cell_offsets, _, neighbors = self.generate_graph(pos, edge_attr)
+        
         ###############################################################
         # Initialize data structures
         ###############################################################
-
+        
         # Compute 3x3 rotation matrix per edge
-        edge_rot_mat = self._init_edge_rot_mat(
-            data, edge_index, edge_distance_vec
-        )
-
+        edge_rot_mat = self._init_edge_rot_mat(edge_distance_vec)
+        
         # Initialize the WignerD matrices and other values for spherical harmonic calculations
         for i in range(self.num_resolutions):
             self.SO3_rotation[i].set_wigner(edge_rot_mat)
-
+        
         ###############################################################
         # Initialize node embeddings
         ###############################################################
-
-        # Init per node representations using an atomic number based embedding
-        offset = 0
-        x = SO3_Embedding(
-            num_atoms,
-            self.lmax_list,
-            self.sphere_channels,
-            self.device,
-            self.dtype,
-        )
-
+        
+        # Initialize per-node representations using an atomic number-based embedding
+        x = SO3_Embedding(num_atoms, self.lmax_list, self.sphere_channels, self.device, pos.dtype)
+        
         offset_res = 0
         offset = 0
         # Initialize the l = 0, m = 0 coefficients for each resolution
@@ -403,12 +388,10 @@ class EquiformerV2_nbody(BaseModel):
             if self.num_resolutions == 1:
                 x.embedding[:, offset_res, :] = self.sphere_embedding(atomic_numbers)
             else:
-                x.embedding[:, offset_res, :] = self.sphere_embedding(
-                    atomic_numbers
-                    )[:, offset : offset + self.sphere_channels]
-            offset = offset + self.sphere_channels
-            offset_res = offset_res + int((self.lmax_list[i] + 1) ** 2)
-
+                x.embedding[:, offset_res, :] = self.sphere_embedding(atomic_numbers)[:, offset : offset + self.sphere_channels]
+            offset += self.sphere_channels
+            offset_res += int((self.lmax_list[i] + 1) ** 2)
+        
         # Edge encoding (distance and atom edge)
         edge_distance = self.distance_expansion(edge_distance)
         if self.share_atom_edge_embedding and self.use_atom_edge_embedding:
@@ -417,54 +400,36 @@ class EquiformerV2_nbody(BaseModel):
             source_embedding = self.source_embedding(source_element)
             target_embedding = self.target_embedding(target_element)
             edge_distance = torch.cat((edge_distance, source_embedding, target_embedding), dim=1)
-
+        
         # Edge-degree embedding
-        edge_degree = self.edge_degree_embedding(
-            atomic_numbers,
-            edge_distance,
-            edge_index)
+        edge_degree = self.edge_degree_embedding(atomic_numbers, edge_distance, edge_index)
         x.embedding = x.embedding + edge_degree.embedding
-
+        
         ###############################################################
         # Update spherical node embeddings
         ###############################################################
-
+        
         for i in range(self.num_layers):
-            x = self.blocks[i](
-                x,                  # SO3_Embedding
-                atomic_numbers,
-                edge_distance,
-                edge_index,
-                batch=data.batch    # for GraphDropPath
-            )
-
+            x = self.blocks[i](x, atomic_numbers, edge_distance, edge_index)
+        
         # Final layer norm
         x.embedding = self.norm(x.embedding)
-
+        
         ###############################################################
-        # Energy estimation
+        # Position prediction
         ###############################################################
-        node_energy = self.energy_block(x) 
-        node_energy = node_energy.embedding.narrow(1, 0, 1)
-        energy = torch.zeros(len(data.natoms), device=node_energy.device, dtype=node_energy.dtype)
-        energy.index_add_(0, data.batch, node_energy.view(-1))
-        energy = energy / _AVG_NUM_NODES
-
-        ###############################################################
-        # Force estimation
-        ###############################################################
-        if self.regress_forces:
-            forces = self.force_block(x,
-                atomic_numbers,
-                edge_distance,
-                edge_index)
-            forces = forces.embedding.narrow(1, 1, 3)
-            forces = forces.view(-1, 3)            
-            
-        if not self.regress_forces:
-            return energy
-        else:
-            return energy, forces
+        # Concatenate position and velocity information
+        pos_vel = torch.cat((pos, vel), dim=1)
+        
+        # Predict the change in position
+        delta_pos = self.position_block(x, pos_vel)
+        delta_pos = delta_pos.embedding.narrow(1, 1, 3)
+        delta_pos = delta_pos.view(-1, 3)
+        
+        # Compute the predicted positions by adding the change in position to the current positions
+        predicted_positions = pos + delta_pos
+        
+        return predicted_positions
 
 
     # Initialize the edge rotation matrics

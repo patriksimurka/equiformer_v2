@@ -31,7 +31,6 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, 
                     model_ema: Optional[ModelEma] = None,  
-                    amp_autocast=None,
                     loss_scaler=None,
                     clip_grad=None,
                     print_freq: int = 100, 
@@ -53,26 +52,24 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     #    atomref = torch.zeros(100, 1)
     #atomref = atomref.to(device)
     
-    for batch_idx, batch_data in enumerate(data_loader):
+    for step, batch_data in enumerate(data_loader):
+        print('batch_data', batch_data)
         loc_frame_0, vel_frame_0, edge_attr, charges, loc_frame_T = batch_data[:5]
         
+        # Create a Data object
         data = (loc_frame_0, vel_frame_0, edge_attr, charges)
-        target = loc_frame_T
-        
         data = tuple(d.to(device) for d in data)
-        target = target.to(device)
+        target = loc_frame_T.to(device)
+        
         #data.edge_d_index = radius_graph(data.pos, r=10.0, batch=data.batch, loop=True)
         #data.edge_d_attr = data.edge_attr
-        with amp_autocast():
-            pred = model(f_in=data.x, pos=data.pos, batch=data.batch, 
-                node_atom=data.z,
-                edge_d_index=data.edge_d_index, edge_d_attr=data.edge_d_attr)
-            pred = pred.squeeze()
-            #loss = (pred - data.y[:, target])
-            #loss = loss.pow(2).mean()
-            #atomref_value = atomref(data.z)
+        pred = model(data)
+        pred = pred.squeeze()
+        #loss = (pred - data.y[:, target])
+        #loss = loss.pow(2).mean()
+        #atomref_value = atomref(data.z)
 
-            loss = criterion(pred, target)
+        loss = criterion(pred, target)
         
         optimizer.zero_grad()
         if loss_scaler is not None:
@@ -131,11 +128,10 @@ def evaluate(model, norm_factor, target, data_loader, device, amp_autocast=None,
             #data.edge_d_index = radius_graph(data.pos, r=10.0, batch=data.batch, loop=True)
             #data.edge_d_attr = data.edge_attr
             
-            with amp_autocast():
-                pred = model(f_in=data.x, pos=data.pos, batch=data.batch, 
-                    node_atom=data.z,
-                    edge_d_index=data.edge_d_index, edge_d_attr=data.edge_d_attr)
-                pred = pred.squeeze()
+            pred = model(f_in=data.x, pos=data.pos, batch=data.batch, 
+                node_atom=data.z,
+                edge_d_index=data.edge_d_index, edge_d_attr=data.edge_d_attr)
+            pred = pred.squeeze()
             
             loss = criterion(pred, (data.y[:, target] - task_mean) / task_std)
             loss_metric.update(loss.item(), n=pred.shape[0])
