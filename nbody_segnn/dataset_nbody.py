@@ -106,8 +106,11 @@ class NBodyDataset():
             frame_0, frame_T = 20, 30
         else:
             raise Exception("Wrong dataset partition %s" % self.dataset_name)
+        
+        data = (loc[frame_0], vel[frame_0], edge_attr, charges)
+        target = loc[frame_T]
 
-        return loc[frame_0], vel[frame_0], edge_attr, charges, loc[frame_T]
+        return data, target
 
     def __len__(self):
         return len(self.data[0])

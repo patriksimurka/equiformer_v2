@@ -53,8 +53,14 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     #    atomref = torch.zeros(100, 1)
     #atomref = atomref.to(device)
     
-    for step, (data, target) in enumerate(data_loader):
-        data = data.to(device)
+    for batch_idx, batch_data in enumerate(data_loader):
+        loc_frame_0, vel_frame_0, edge_attr, charges, loc_frame_T = batch_data[:5]
+        
+        data = (loc_frame_0, vel_frame_0, edge_attr, charges)
+        target = loc_frame_T
+        
+        data = tuple(d.to(device) for d in data)
+        target = target.to(device)
         #data.edge_d_index = radius_graph(data.pos, r=10.0, batch=data.batch, loop=True)
         #data.edge_d_attr = data.edge_attr
         with amp_autocast():
