@@ -1,0 +1,16 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Train nbody",
+            "type": "python",
+            "request": "launch",
+            "python": "/home/patriksimurka/miniconda3/envs/equiformer_v2/bin/python3", // TODO: Make this general
+            "program": "${workspaceFolder}/train_nbody.py",
+            "args": []
+        }
+    ]
+}
