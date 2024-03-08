@@ -4,3 +4,5 @@ nbody/dataset/*.npy
 datasets/oc20
 ocp
 *.npy
+*.npz
+*.pt
