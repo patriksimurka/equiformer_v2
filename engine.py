@@ -28,7 +28,6 @@ class AverageMeter:
 
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
-                    norm_factor: list, 
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, 
                     model_ema: Optional[ModelEma] = None,  
@@ -46,8 +45,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     
     start_time = time.perf_counter()
     
-    task_mean = norm_factor[0] #model.task_mean
-    task_std  = norm_factor[1] #model.task_std
+    # task_mean = norm_factor[0] #model.task_mean
+    # task_std  = norm_factor[1] #model.task_std
 
     #atomref = dataset.atomref()
     #if atomref is None:
@@ -67,7 +66,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             #loss = loss.pow(2).mean()
             #atomref_value = atomref(data.z)
 
-            loss = criterion(pred, (data.y[:, target] - task_mean) / task_std)
+            loss = criterion(pred, target)
         
         optimizer.zero_grad()
         if loss_scaler is not None:
@@ -82,7 +81,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         #err = (pred.detach() * task_std + task_mean) - data.y[:, target]
         #err_list += [err.cpu()]
         loss_metric.update(loss.item(), n=pred.shape[0])
-        err = pred.detach() * task_std + task_mean - data.y[:, target]
+        err = pred.detach() - target
         mae_metric.update(torch.mean(torch.abs(err)).item(), n=pred.shape[0])
         
         if model_ema is not None:

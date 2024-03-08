@@ -45,10 +45,6 @@ def main(args):
 
     criterion = torch.nn.MSELoss()
 
-    norm_factor = 1e-3  # TODO: improve
-
-    target = train_dataset[0].y
-
     # Training loop
     for epoch in range(args.num_epochs):
         train_stats = train_one_epoch(
@@ -58,7 +54,6 @@ def main(args):
             device=device,
             epoch=epoch,
             criterion=criterion,
-            norm_factor=norm_factor,
         )
         print(f"Epoch: {epoch}, Train loss: {train_stats['loss']:.4f}")
 
