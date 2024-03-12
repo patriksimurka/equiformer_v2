@@ -6,3 +6,7 @@ ocp
 *.npy
 *.npz
 *.pt
+.vscode
+logs/
+*_log.*.txt
+oc20/s2ef/2M/train/
