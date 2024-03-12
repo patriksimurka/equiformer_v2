@@ -11,3 +11,6 @@ ocp
 logs/
 *_log.*.txt
 oc20/data
+*.lmdb
+*lmdb-lock
+
