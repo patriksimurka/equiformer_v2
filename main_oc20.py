@@ -7,8 +7,6 @@ LICENSE file in the root directory of this source tree.
 
 import copy
 import logging
-import os
-import sys
 import time
 from pathlib import Path
 

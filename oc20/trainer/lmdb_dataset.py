@@ -69,9 +69,11 @@ class LmdbDatasetV2(Dataset):
 
             self._keys, self.envs = [], []
             for db_path in db_paths:
-                self.envs.append(self.connect_db(db_path))
+                connected = self.connect_db(db_path)
+                self.envs.append(connected)
+                to_be_loaded = self.envs[-1].begin().get("length".encode("ascii"))
                 length = pickle.loads(
-                    self.envs[-1].begin().get("length".encode("ascii"))
+                    to_be_loaded
                 )
                 self._keys.append(list(range(length)))
 

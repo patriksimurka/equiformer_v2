@@ -14,13 +14,14 @@ def init_edge_rot_mat(edge_distance_vec):
             )
         )
         
-    norm_x = edge_vec_0 / (edge_vec_0_distance.view(-1, 1))
+    norm_x = edge_vec_0 / edge_vec_0_distance.view(edge_vec_0.shape[0], 1, 5)
 
     edge_vec_2 = torch.rand_like(edge_vec_0) - 0.5
+    edge_vec_2_norm = torch.sqrt(torch.sum(edge_vec_2**2, dim=1))
     edge_vec_2 = edge_vec_2 / (
-        torch.sqrt(torch.sum(edge_vec_2**2, dim=1)).view(-1, 1)
+        edge_vec_2_norm.view(edge_vec_2.shape[0], 1, 5)
     )
-    # Create two rotated copys of the random vectors in case the random vector is aligned with norm_x
+    # Create two rotated copies of the random vectors in case the random vector is aligned with norm_x
     # With two 90 degree rotated vectors, at least one should not be aligned with norm_x
     edge_vec_2b = edge_vec_2.clone()
     edge_vec_2b[:, 0] = -edge_vec_2[:, 1]

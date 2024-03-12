@@ -6,7 +6,8 @@ ocp
 *.npy
 *.npz
 *.pt
-.vscode
+.vscode/*
+!.vscode/launch.json
 logs/
 *_log.*.txt
-oc20/s2ef/2M/train/
+oc20/data

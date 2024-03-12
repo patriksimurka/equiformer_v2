@@ -361,7 +361,7 @@ class EquiformerV2_nbody(BaseModel):
         atomic_numbers = charges
         
         # Generate the graph structure and edge-related information
-        edge_index, edge_distance, edge_distance_vec, cell_offsets, _, neighbors = self.generate_graph(pos, edge_attr)
+        edge_index, edge_distance, edge_distance_vec, cell_offsets, _, neighbors = self.generate_graph(pos)
         
         ###############################################################
         # Initialize data structures
@@ -433,7 +433,7 @@ class EquiformerV2_nbody(BaseModel):
 
 
     # Initialize the edge rotation matrics
-    def _init_edge_rot_mat(self, data, edge_index, edge_distance_vec):
+    def _init_edge_rot_mat(self, edge_distance_vec):
         return init_edge_rot_mat(edge_distance_vec)
         
 

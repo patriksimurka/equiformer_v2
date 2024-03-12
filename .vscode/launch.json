@@ -11,6 +11,22 @@
             "python": "/home/patriksimurka/miniconda3/envs/equiformer_v2/bin/python3", // TODO: Make this general
             "program": "${workspaceFolder}/train_nbody.py",
             "args": []
+        },
+        {
+            "name": "Python: Train oc20",
+            "type": "python",
+            "request": "launch",
+            "python": "/home/patriksimurka/miniconda3/envs/equiformer_v2/bin/python3", // TODO: Make this general
+            "program": "${workspaceFolder}/main_oc20.py",
+            "args": [
+                "--num-gpus", "1",
+                "--num-nodes", "1",
+                "--mode", "train",
+                "--config-yml", "oc20/configs/s2ef/2M/equiformer_v2/equiformer_v2_N@12_L@6_M@2.yml",
+                "--run-dir", "models/oc20/s2ef/2M/equiformer_v2/N@12_L@6_M@2/bs@64_lr@2e-4_wd@1e-3_epochs@12_warmup-epochs@0.1_g@8x2",
+                "--print-every", "200",
+                "--amp",
+            ]
         }
     ]
 }
